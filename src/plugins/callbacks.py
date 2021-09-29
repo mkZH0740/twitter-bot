@@ -15,6 +15,12 @@ stream_holder: StreamHolder = twitter_dict.stream_holder
 @nonebot.get_driver().on_startup
 async def startup():
     await bot_database.load()
-    asyncio.create_task(stream_holder.run_stream())
-    asyncio.create_task(stream_holder.consume())
+    await stream_holder.run_stream()
+    stream_holder.consume_task = asyncio.create_task(stream_holder.consume())
     nonebot.logger.info(f'full startup completed')
+
+
+@nonebot.get_driver().on_shutdown
+async def shutdown():
+    await bot_database.save()
+    await stream_holder.clean_up()

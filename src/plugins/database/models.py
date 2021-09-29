@@ -4,10 +4,11 @@ from typing import Optional, Any
 
 import aiofiles
 import nonebot
-from aiofiles import os as async_os
 
 
 history_list_max_count = 1000
+image_custom_settings = ('tag', 'background')
+text_custom_settings = ('css',)
 
 
 class User:
@@ -43,7 +44,7 @@ class User:
         if key == 'user_id' or key == 'screen_name':
             return self.__make_err_msg(f'invalid key {key}')
         curr_value = getattr(self, key)
-        if not isinstance(value, type(curr_value)):
+        if not (key.startswith('custom') or isinstance(value, type(curr_value))):
             return self.__make_err_msg(f'inconsistent type current = {type(curr_value)}, new = {type(value)}')
         if value == curr_value:
             return self.__make_err_msg(f'setting same value {value}')
@@ -108,7 +109,7 @@ class Group:
         return self.__make_err_msg(f'unknown user {screen_name}')
 
     async def modify_users(self, key: str, value):
-        return [await user.modify(key, value) for user in self.registered_users.values()]
+        return {user.screen_name: await user.modify(key, value) for user in self.registered_users.values()}
 
     async def add_user(self, user_id: int, screen_name: str):
         if user_id in self.registered_users:
@@ -157,6 +158,9 @@ class Group:
         if os.path.exists(histories_file_path):
             async with aiofiles.open(histories_file_path, 'r', encoding='utf-8') as f:
                 history_content = await f.readlines()
-                history_content.pop()
-                self.histories = [line.strip() for line in history_content]
+                if len(history_content) == 0:
+                    self.histories = []
+                else:
+                    history_content.pop()
+                    self.histories = [line.strip() for line in history_content]
         nonebot.logger.info(f'group {self.group_id} loaded')
