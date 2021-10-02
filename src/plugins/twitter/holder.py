@@ -6,6 +6,7 @@ from asyncio import Queue
 from asyncio import Task
 from tweepy import Client
 from tweepy import User
+from tweepy import Response
 
 from .stream import Stream
 from .models import Tweet
@@ -35,7 +36,7 @@ class StreamHolder:
 
     async def run_stream(self):
         if self.stream is not None:
-            await self.cancel_stream()
+            await self.clean_up()
         self.stream = Stream(self.twitter_consumer_key, self.twitter_consumer_secret,
                              self.twitter_access_token, self.twitter_access_token_secret)
         self.stream.stream_queue = self.queue
@@ -66,7 +67,7 @@ class StreamHolder:
         await self.cancel_stream()
         self.consume_task.cancel()
 
-    async def get_user_id_by_screen_name(self, screen_name: str):
+    async def get_user_by_screen_name(self, screen_name: str) -> tuple[bool, Optional[User]]:
         if self.client is None:
             self.client = Client(
                 bearer_token=self.twitter_bearer_token,
@@ -75,7 +76,8 @@ class StreamHolder:
                 access_token=self.twitter_access_token,
                 access_token_secret=self.twitter_access_token_secret
             )
-        user: Optional[User] = self.client.get_user(username=screen_name)
-        if user is None:
-            raise RuntimeError(f'unknown user screen_name {screen_name}')
-        return user.id
+        response: Response = self.client.get_user(username=screen_name)
+        if isinstance(response.data, User):
+            return True, response.data
+        else:
+            return False, None

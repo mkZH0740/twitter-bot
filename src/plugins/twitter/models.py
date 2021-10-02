@@ -9,7 +9,7 @@ from aiofiles import os as async_os
 import aiohttp
 import nonebot
 
-from ..database.models import Group
+from ..database.models import GroupSetting
 
 
 class TweetUser:
@@ -125,7 +125,7 @@ class Tweet:
             for content_url in content_urls:
                 self.content_message += str(MessageSegment.image(file=content_url))
 
-    async def make_message(self, group: Group) -> str:
+    async def make_message(self, group: GroupSetting) -> str:
         await self.load_text_and_screenshot_message()
         if self.screenshot_message == '':
             return f'{self.text_message}'

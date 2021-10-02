@@ -11,7 +11,7 @@ image_custom_settings = ('tag', 'background')
 text_custom_settings = ('css',)
 
 
-class User:
+class UserSetting:
     user_id: int
     screen_name: str
 
@@ -60,7 +60,7 @@ class User:
         screen_name = json_content.get('screen_name')
         if user_id is None or screen_name is None:
             return None
-        user = User(user_id, screen_name)
+        user = UserSetting(user_id, screen_name)
         for k, v in json_content.items():
             setattr(user, k, v)
         return user
@@ -77,11 +77,11 @@ class User:
         return hash(self.user_id)
 
 
-class Group:
+class GroupSetting:
     group_id: int
     database_path: str
 
-    registered_users: dict[int, User]
+    registered_users: dict[int, UserSetting]
     histories: list[str]
 
     def __init__(self, group_id: int, database_path: str):
@@ -114,15 +114,14 @@ class Group:
     async def add_user(self, user_id: int, screen_name: str):
         if user_id in self.registered_users:
             return self.__make_err_msg(f'user {screen_name} already exists')
-        self.registered_users[user_id] = User(user_id, screen_name)
+        self.registered_users[user_id] = UserSetting(user_id, screen_name)
         return self.__make_success_msg(f'add user {screen_name} completed')
 
-    async def delete_user(self, screen_name: str):
-        for user in self.registered_users.values():
-            if user.screen_name == screen_name:
-                self.registered_users.pop(user.user_id)
-                return self.__make_success_msg(f'delete user {screen_name} completed')
-        return self.__make_err_msg(f'unknown user {screen_name}')
+    async def delete_user(self, user_id: int):
+        if user_id not in self.registered_users:
+            return self.__make_err_msg(f'unknown user')
+        self.registered_users.pop(user_id)
+        return self.__make_success_msg(f'delete user completed')
 
     async def add_history(self, history: str):
         self.histories.append(history)
@@ -151,7 +150,7 @@ class Group:
             async with aiofiles.open(user_setting_file_path, 'r', encoding='utf-8') as f:
                 user_content: dict[str, dict[str, Any]] = json.loads(await f.read())
                 for json_content in user_content.values():
-                    user = await User.from_json_content(json_content)
+                    user = await UserSetting.from_json_content(json_content)
                     if user is None:
                         continue
                     self.registered_users[user.user_id] = user
@@ -161,6 +160,8 @@ class Group:
                 if len(history_content) == 0:
                     self.histories = []
                 else:
-                    history_content.pop()
-                    self.histories = [line.strip() for line in history_content]
+                    self.histories = [line.strip() for line in history_content if line != '\n']
         nonebot.logger.info(f'group {self.group_id} loaded')
+
+    def __str__(self):
+        return f'[GroupSetting {self.group_id}]'

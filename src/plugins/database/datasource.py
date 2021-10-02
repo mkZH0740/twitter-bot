@@ -6,13 +6,13 @@ import aiofiles
 import nonebot
 from aiofiles import os as async_os
 
-from .models import User, Group
+from .models import UserSetting, GroupSetting
 
 
 class BotDatabase:
     database_path: str
 
-    registered_groups: dict[int, Group]
+    registered_groups: dict[int, GroupSetting]
 
     def __init__(self):
         self.database_path = nonebot.get_driver().config.database_path
@@ -29,7 +29,7 @@ class BotDatabase:
         for group_database_path in group_database_paths:
             if not group_database_path.isdigit():
                 continue
-            group = Group(int(group_database_path), f'{self.database_path}\\{group_database_path}')
+            group = GroupSetting(int(group_database_path), f'{self.database_path}\\{group_database_path}')
             await group.load()
             self.registered_groups[group.group_id] = group
 
@@ -43,7 +43,7 @@ class BotDatabase:
     async def register_group(self, group_id: int):
         if group_id in self.registered_groups:
             return self.__make_err_msg(f'group {group_id} already exists')
-        group = Group(group_id, f'{self.database_path}\\{group_id}')
+        group = GroupSetting(group_id, f'{self.database_path}\\{group_id}')
         await async_os.mkdir(group.database_path)
 
         async with aiofiles.open(f'{group.database_path}\\user.json', 'w', encoding='utf-8') as f:
