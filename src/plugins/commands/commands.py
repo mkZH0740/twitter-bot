@@ -19,6 +19,7 @@ stream_holder: StreamHolder = twitter_dict.stream_holder
 
 
 get_group_setting_command = on_command('get')
+get_group_setting_command.__doc__ = """get: 获取当前群订阅的所有推特用户的设置，eg: #get"""
 
 
 @get_group_setting_command.handle()
@@ -29,6 +30,9 @@ async def get_group_setting_handler(bot: Bot, event: GroupMessageEvent, state):
 
 
 enable_user_setting_command = on_command('enable')
+enable_user_setting_command.__doc__ = """enable: 开启当前群订阅的推特用户设置，eg: #enable *;receive_tweet, #enable 
+TAKATOSHI_Gship;receive_tweet\n\n所有可以设置的选项为receive_tweet, receive_retweet, receive_comment, require_text, 
+require_translation, require_screenshot, require_content"""
 
 
 @enable_user_setting_command.handle()
@@ -37,6 +41,9 @@ async def enable_user_setting_handler(bot: Bot, event: GroupMessageEvent, state)
 
 
 disable_user_setting_command = on_command('disable')
+disable_user_setting_command.__doc__ = """disable: 关闭当前群订阅的推特用户设置，eg: #disable *;receive_tweet, #disable 
+TAKATOSHI_Gship;receive_tweet\n\n所有可以设置的选项为receive_tweet, receive_retweet, receive_comment, require_text, 
+require_translation, require_screenshot, require_content"""
 
 
 @disable_user_setting_command.handle()
@@ -45,6 +52,8 @@ async def disable_user_setting_handler(bot: Bot, event: GroupMessageEvent, state
 
 
 custom_user_setting_command = on_command('custom')
+custom_user_setting_command.__doc__ = """custom: 设置当前群订阅的推特用户的定制内容，eg: #custom *;tag, #custom 
+TAKATOSHI_Gship;tag\n\n所有可以设置的选项为tag, css, background """
 
 
 @custom_user_setting_command.handle()
@@ -68,6 +77,8 @@ async def custom_user_setting_content_handler(bot: Bot, event: GroupMessageEvent
 
 
 add_twitter_user_command = on_command('add')
+add_twitter_user_command.__doc__ = """add: 在当前群订阅推特用户，eg: #add <screen name>，screen name可以在推特链接中找到，
+（eg: https://twitter.com/TAKATOSHI_Gship， 则screen name为 TAKATOSHI_Gship，对应的命令为#add TAKATOSHI_Gship）"""
 
 
 @add_twitter_user_command.handle()
@@ -86,6 +97,8 @@ async def add_twitter_user_handler(bot: Bot, event: GroupMessageEvent, state):
 
 
 delete_twitter_user_command = on_command('delete')
+delete_twitter_user_command.__doc__ = """delete: 在当前群删除订阅的推特用户,eg: #delete <screen name>，screen name可以在推特链接中找到，
+（eg: https://twitter.com/TAKATOSHI_Gship， 则screen name为 TAKATOSHI_Gship，对应的命令为#delete TAKATOSHI_Gship）"""
 
 
 @delete_twitter_user_command.handle()
@@ -104,6 +117,8 @@ async def delete_twitter_user_handler(bot: Bot, event: GroupMessageEvent, state)
 
 
 translate_command = on_command('translate')
+translate_command.__doc__ = """translate: 嵌字，需要对应的嵌字编号，eg: #translate 3，随后按照提示输入嵌字内容，如果是嵌入回复内容，需要指定行号，例如#1 第一行内容\n#3 
+第三行内容 """
 
 
 @translate_command.handle()
@@ -136,6 +151,7 @@ async def translate_block_handler(bot: Bot, event: GroupMessageEvent, state):
 
 
 check_custom_command = on_command('check')
+check_custom_command.__doc__ = """check: 查询当前自定义的设置内容，eg: #check css, #check tag"""
 
 
 @check_custom_command.handle()
