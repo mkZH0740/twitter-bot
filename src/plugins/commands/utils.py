@@ -45,8 +45,7 @@ async def matcher_switch_group_setting(matcher: Type[Matcher], bot_database: Bot
     if len(pair) != 2:
         await matcher.finish(f'invalid key value pair length {len(pair)}, expected 2')
     group_setting = await get_group_setting(matcher, bot_database, event.group_id)
-    key: str = pair[0]
-    target: str = pair[1]
+    (target, key) = pair
     if target != '*' and (await group_setting.get_user(target)) is None:
         await matcher.finish(f'unknown user {target}')
     result_message = await switch_group_setting(group_setting, target, key, value)
