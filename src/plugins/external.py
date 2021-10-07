@@ -1,9 +1,12 @@
-import psutil
 import subprocess
 import nonebot
 
 from psutil import Popen
 from nonebot import export
+
+
+async def _kill_process(process: Popen):
+    subprocess.call(['taskkill', '/F', '/T', '/PID', str(process.pid)])
 
 
 class ExternalHolder:
@@ -36,21 +39,21 @@ class ExternalHolder:
         self.server_cmd.stdin.write(bytes('npm run start\n', 'utf-8'))
         self.server_cmd.stdin.flush()
 
-    async def run(self):
+    async def startup(self):
         await self.start_cq_http()
         await self.start_server()
 
     async def reboot_cq_http(self):
-        self.cq_http_cmd.terminate()
+        await _kill_process(self.cq_http_cmd)
         await self.start_cq_http()
 
     async def reboot_server(self):
-        self.server_cmd.terminate()
+        await _kill_process(self.server_cmd)
         await self.start_server()
 
     async def shutdown(self):
-        self.cq_http_cmd.terminate()
-        self.server_cmd.terminate()
+        await _kill_process(self.cq_http_cmd)
+        await _kill_process(self.server_cmd)
 
 
 external_dict = export()

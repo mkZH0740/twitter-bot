@@ -1,15 +1,12 @@
-import hashlib
 import os.path
-import random
-import urllib.parse
 from typing import Optional
+
+import nonebot
 from nonebot.adapters.cqhttp import MessageSegment
 from aiofiles import os as async_os
 
-import aiohttp
-import nonebot
-
-from ..database.models import GroupSetting
+from .utils import get_screenshot_and_text, get_translation
+from ..db import GroupSetting
 
 
 class TweetUser:
@@ -23,7 +20,7 @@ class TweetUser:
 
 
 class TweetEntities:
-    has_entities: bool = False
+    has_entities: bool
     media: list[dict]
 
     def __init__(self, status):
@@ -33,6 +30,7 @@ class TweetEntities:
             self.has_entities = True
         else:
             self.media = []
+            self.has_entities = False
 
     async def get_images(self, max_image_count: int = 4):
         results: list[Optional[str]] = []
@@ -42,109 +40,80 @@ class TweetEntities:
 
 
 class Tweet:
-    id: int
-    url: str
+    tweet_id: int
+    tweet_url: str
     tweet_type: str
     user: TweetUser
     entities: TweetEntities
 
-    raw_text: Optional[str] = None
-    text_message: Optional[str] = ''
-    raw_translation: Optional[str] = None
-    translation_message: Optional[str] = ''
-    raw_screenshot: Optional[str] = None
-    screenshot_message: Optional[str] = ''
-    content_message: Optional[str] = ''
-
     def __init__(self, status):
         self.status = status
-        self.id = getattr(status, 'id')
+        self.tweet_id = getattr(status, 'id')
         self.user = TweetUser(status)
-        self.url = f'https://twitter.com/{self.user.screen_name}/status/{self.id}'
+        self.tweet_url = f'https://twitter.com/{self.user.screen_name}/status/{self.tweet_id}'
         self.entities = TweetEntities(status)
         self.tweet_type = 'tweet'
         if hasattr(status, 'retweeted_status'):
             self.tweet_type = 'retweet'
         elif getattr(status, 'in_reply_to_status_id') is not None:
             self.tweet_type = 'comment'
+        self.loaded_content: dict[str, str] = {}
 
-    async def load_text_and_screenshot_message(self):
-        if self.raw_screenshot is None:
-            async with aiohttp.ClientSession() as session:
-                server_url = nonebot.get_driver().config.server_url
-                server_path = nonebot.get_driver().config.server_path
-                async with session.get(f'{server_url}/screenshot', json={'url': self.url}) as response:
-                    if response.status != 200:
-                        self.text_message = str(MessageSegment.text('unknown error occurred on server side, please '
-                                                                    'contact administrator'))
-                    else:
-                        result: dict[str, str] = await response.json()
-                        if result.get('type') == 'ok':
-                            self.raw_screenshot = f'{server_path}\\{result.get("screenshotPath")}'
-                            self.screenshot_message = str(MessageSegment.image(file=f'file:///{self.raw_screenshot}'))
-                            self.raw_text = result.get('text')
-                            self.text_message = str(MessageSegment.text(result.get('text')))
-                        elif result.get('type') == 'err':
-                            self.text_message = str(MessageSegment.text(result.get('message')))
-                        else:
-                            self.text_message = str(MessageSegment.text('unknown error occurred on server side, please '
-                                                                        'contact administrator'))
+    async def load_text_and_screenshot(self):
+        if 'text' not in self.loaded_content:
+            result = await get_screenshot_and_text(self.tweet_url)
+            result_type = result.get('type')
+            if result_type == 'ok':
+                screenshot_path = result.get('screenshot_path')
+                self.loaded_content['screenshot_path'] = screenshot_path
+                self.loaded_content['screenshot_message'] = str(MessageSegment.image(file=f'file:///{screenshot_path}'))
+                self.loaded_content['text'] = result.get('text')
+            else:
+                self.loaded_content['text'] = result.get('message')
 
-    async def load_translation_message(self):
-        if self.raw_translation is None and self.raw_text != '':
-            async with aiohttp.ClientSession() as session:
-                translate_api_url = 'https://fanyi-api.baidu.com/api/trans/vip/translate'
-                baidu_appid = nonebot.get_driver().config.baidu_appid
-                baidu_secret = nonebot.get_driver().config.baidu_secret
-                salt = random.randint(32768, 65536)
-                sign = f'{baidu_appid}{self.raw_text}{salt}{baidu_secret}'.encode('utf-8')
-                md5_module = hashlib.md5()
-                md5_module.update(sign)
-                sign = md5_module.hexdigest()
-                request_url = f'{translate_api_url}?q={urllib.parse.quote(self.raw_text)}&from=auto&to=zh&appid={baidu_appid}&salt={salt}&sign={sign}'
-                async with session.get(request_url) as response:
-                    if response.status != 200:
-                        self.translation_message = str(
-                            MessageSegment.text(f'translation request failed with status {response.status}'))
-                        return
-                    result: dict = await response.json(encoding='utf-8')
-                    if 'error_code' in result:
-                        self.translation_message = str(
-                            MessageSegment.text(f'translation failed with error code {result["error_code"]}'))
-                    else:
-                        translated_text = ''
-                        translated_results: list[dict[str, str]] = result.get('trans_result')
-                        for translated_result in translated_results:
-                            translated_text += translated_result['dst'] + '\n'
-                        self.raw_translation = translated_text.strip()
-                        self.translation_message = str(MessageSegment.text(self.raw_translation))
+    async def load_translation(self):
+        if 'translation' not in self.loaded_content:
+            self.loaded_content['translation'] = await get_translation(self.loaded_content['text'])
 
     async def load_content_message(self):
-        if self.content_message is None:
+        if 'content_message' not in self.loaded_content:
             content_urls = await self.entities.get_images()
+            content_message = ''
             for content_url in content_urls:
-                self.content_message += str(MessageSegment.image(file=content_url))
+                content_message += str(MessageSegment.image(file=content_url))
+            self.loaded_content['content_message'] = content_message
 
-    async def make_message(self, group: GroupSetting) -> str:
-        await self.load_text_and_screenshot_message()
-        if self.screenshot_message == '':
-            return f'{self.text_message}'
-        curr_user_setting = await group.get_user(self.user.screen_name)
+    async def make_message(self, group_setting: GroupSetting):
+        nonebot.logger.debug(f'making message for group {group_setting.group_id}')
+        await self.load_text_and_screenshot()
+        if self.loaded_content.get('screenshot_path') is None:
+            return self.loaded_content.get('text')
+        (flag, content) = await group_setting.get_user_setting(user_id=self.user.id)
+        if content is None:
+            return f'未注册用户{self.user.screen_name}'
+        elif isinstance(content, str):
+            return content
         result_message = ''
-        if curr_user_setting.require_screenshot:
-            result_message += self.screenshot_message
-        if curr_user_setting.require_text:
-            result_message += f'\n原文：{self.text_message}'
-        if curr_user_setting.require_translation:
-            await self.load_translation_message()
-            result_message += f'\n翻译：{self.translation_message}'
-        if curr_user_setting.require_content and self.entities.has_entities:
+        nonebot.logger.debug(f'group registered user setting {await content.to_json_value()}')
+        if getattr(content, 'receive_screenshot'):
+            result_message += self.loaded_content.get('screenshot_message')
+        if getattr(content, 'receive_text'):
+            result_message += '\n原文：' + self.loaded_content.get('text')
+        if getattr(content, 'receive_translation'):
+            await self.load_translation()
+            result_message += '\n翻译：' + self.loaded_content.get('translation')
+        if getattr(content, 'receive_content'):
             await self.load_content_message()
-            result_message += f'\n附件：{self.content_message}'
-        curr_group_history_index = await group.add_history(self.url)
-        result_message += f'\n编号：{curr_group_history_index}'
+            content_message = self.loaded_content.get('content_message')
+            if content_message != '':
+                result_message += '\n附件：' + content_message
+        group_history_index = await group_setting.add_history(self.tweet_url)
+        result_message += f'\n编号：{group_history_index}'
+        nonebot.logger.debug(f'making message for group {group_setting.group_id} completed')
         return result_message
 
     async def clean_up(self):
-        if os.path.exists(self.raw_screenshot):
-            await async_os.remove(self.raw_screenshot)
+        screenshot_path = self.loaded_content.get('screenshot_path')
+        if screenshot_path is not None and os.path.exists(screenshot_path):
+            await async_os.remove(screenshot_path)
+        nonebot.logger.debug(f'tweet {self.tweet_url} cleaned up')

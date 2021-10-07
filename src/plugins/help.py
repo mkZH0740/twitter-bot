@@ -1,4 +1,3 @@
-import nonebot
 from nonebot import on_command
 from nonebot.adapters.cqhttp import Bot, GroupMessageEvent
 from nonebot.matcher import matchers
