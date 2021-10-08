@@ -1,9 +1,11 @@
 import json
 
 import aiofiles
+import nonebot
 from aiohttp.client_exceptions import ClientConnectionError
 from nonebot import on_command, require
-from nonebot.adapters.cqhttp import Bot, GroupMessageEvent, MessageSegment
+from nonebot.permission import SUPERUSER
+from nonebot.adapters.cqhttp import Bot, GroupMessageEvent, MessageSegment, ActionFailed
 
 from .utils import check_is_registered_group, check_args_length, check_custom_type, save_image_to_path, \
     matcher_switch_user_setting, matcher_send_translation_screenshot
@@ -202,3 +204,16 @@ async def check_custom_handler(bot: Bot, event: GroupMessageEvent, state):
         async with aiofiles.open(custom_content, 'r', encoding='utf-8') as f:
             content = await f.read()
         await check_custom_command.finish(content)
+
+
+announce_command = on_command('a', permission=SUPERUSER)
+
+
+@announce_command.handle()
+async def announce_handler(bot: Bot, event: GroupMessageEvent, state):
+    message = str(event.get_message()).strip()
+    for group_setting in bot_database.registered_groups.values():
+        try:
+            await bot.send_group_msg(group_id=group_setting.group_id, message=message)
+        except ActionFailed as e:
+            nonebot.logger.warning(f'send group message to {group_setting.group_id} failed with retcode={getattr(e, "retcode")}')
