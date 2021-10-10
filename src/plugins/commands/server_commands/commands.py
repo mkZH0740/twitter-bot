@@ -28,7 +28,7 @@ async def translate_handler(bot: Bot, event: GroupMessageEvent, state: T_State):
         await translate_command.finish(f'非法参数类型，需要：int，当前：{index}')
     group_setting = await get_group_setting(translate_command, database, event.group_id)
     match await group_setting.get_history(int(index)):
-        case [True, history]:
+        case[True, history]:
             screen_name = history.split('/')[3]
             user_setting = await group_setting.get_user_setting(screen_name=screen_name)
             if user_setting is None:
@@ -36,7 +36,7 @@ async def translate_handler(bot: Bot, event: GroupMessageEvent, state: T_State):
             state['url'] = history
             state['user_setting'] = user_setting
             state['group_setting'] = group_setting
-        case [False, message]:
+        case[False, message]:
             await translate_command.finish(message)
 
 

@@ -27,7 +27,8 @@ class ExternalHolder:
             stdin=subprocess.PIPE,
             creationflags=subprocess.CREATE_NEW_CONSOLE
         )
-        self.cq_http_cmd.stdin.write(bytes('go-cqhttp_windows_amd64.exe\n', 'utf-8'))
+        self.cq_http_cmd.stdin.write(
+            bytes('go-cqhttp_windows_amd64.exe\n', 'utf-8'))
         self.cq_http_cmd.stdin.flush()
 
     async def start_server(self):

@@ -41,7 +41,7 @@ class UserSetting:
     def __init__(self, user_id: int = -1, screen_name: str = '') -> None:
         self.user_id = user_id
         self.screen_name = screen_name
-    
+
     async def modify(self, key: str, value: bool):
         if not hasattr(self, key) or not key.startswith('receive'):
             return self.__err(f'不支持设置{key}')
@@ -50,10 +50,10 @@ class UserSetting:
         curr_value: bool = getattr(self, key)
         setattr(self, key, value)
         return self.__ok(f'设置完成，{key}的值由{curr_value}设置为{value}')
-    
+
     async def to_json(self):
         return vars(self)
-    
+
     @staticmethod
     async def from_json(json_content: dict[str, Any]):
         if 'user_id' not in json_content or 'screen_name' not in json_content:
@@ -65,16 +65,16 @@ class UserSetting:
 
     def __ok(self, message: str):
         return True, f'{self} => {message}'
-    
+
     def __err(self, message: str):
         return False, f'{self} => {message}'
 
     def __str__(self) -> str:
         return f'[{type(self).__name__} {self.screen_name}]'
-    
+
     def __repr__(self) -> str:
         return str(self)
-    
+
     def __eq__(self, o: object) -> bool:
         if isinstance(o, type(self)) and o.user_id == self.user_id:
             return True
@@ -96,7 +96,7 @@ class GroupSetting:
         self.group_database_path = f'{database_path}\\{group_id}'
         self.user_settings = dict()
         self.history = list()
-    
+
     async def get_user_setting(self, user_id: int = None, screen_name: str = None):
         if user_id is None:
             for user_setting in self.user_settings.values():
@@ -111,13 +111,13 @@ class GroupSetting:
             return self.__err(f'已存在用户{screen_name}')
         self.user_settings[user_id] = UserSetting(user_id, screen_name)
         return self.__ok(f'注册用户{screen_name}成功')
-    
+
     async def unregister_user_setting(self, user_id: int, screen_name: str):
         if user_id not in self.user_settings:
             return self.__err(f'不存在用户{screen_name}')
         self.user_settings.pop(user_id)
         return self.__ok(f'删除用户{screen_name}成功')
-    
+
     async def modify_user_setting(self, key: str, value: bool, user_id: int = None, screen_name: str = None):
         result_message = ''
         if user_id is None and screen_name is None:
@@ -132,18 +132,18 @@ class GroupSetting:
                 (_, message) = await user_setting.modify(key, value)
                 result_message = message
         return self.__ok(result_message.strip())
-    
+
     async def add_history(self, url: str):
         self.history.append(url)
         if len(self.history) >= max_history_amount:
             self.history = self.history[max_history_amount / 2:]
         return len(self.history)
-    
+
     async def get_history(self, index: int):
         if index < 1 or index > len(self.history):
             return self.__err(f'非法编号，编号应在1和{len(self.history)}之间')
         return True, self.history[index]
-    
+
     async def load(self):
         user_setting_path = f'{self.group_database_path}\\user.json'
         if os.path.exists(user_setting_path):
@@ -157,9 +157,10 @@ class GroupSetting:
         if os.path.exists(history_path):
             async with aiofiles.open(history_path, 'r', encoding='utf-8') as f:
                 history_lines = await f.readlines()
-                self.history = [line.strip() for line in history_lines if line != '\n']
+                self.history = [line.strip()
+                                for line in history_lines if line != '\n']
         nonebot.logger.debug(f'{self} => load completed')
-    
+
     async def save(self):
         user_setting_path = f'{self.group_database_path}\\user.json'
         if not os.path.exists(self.group_database_path):
@@ -174,10 +175,10 @@ class GroupSetting:
 
     def __str__(self) -> str:
         return f'[{type(self).__name__} {self.group_id}]'
-    
+
     def __repr__(self) -> str:
         return str(self)
-    
+
     def __ok(self, message: str):
         return True, f'{self} => {message}'
 

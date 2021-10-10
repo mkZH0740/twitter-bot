@@ -65,7 +65,8 @@ async def get_translation(text: str, loaded_content: dict):
                         loaded_content['translation'] = f'翻译请求失败{server_response["error_code"]}'
                     else:
                         translated_text = ''
-                        translated_results: list[dict[str, str]] = server_response.get('trans_result')
+                        translated_results: list[dict[str, str]] = server_response.get(
+                            'trans_result')
                         for translated_result in translated_results:
                             translated_text += translated_result['dst'] + '\n'
                         loaded_content['translation'] = translated_text.strip()

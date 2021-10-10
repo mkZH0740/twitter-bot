@@ -17,6 +17,7 @@ database: Database = database_dict.database
 get_group_setting_command = on_command('get')
 get_group_setting_command.__doc__ = """get: 获取当前群订阅的所有推特用户的设置，eg: #get"""
 
+
 @get_group_setting_command.handle()
 async def get_group_setting_handler(bot: Bot, event: GroupMessageEvent, state: T_State):
     group_setting = await get_group_setting(get_group_setting_command, database, event.group_id)
@@ -31,6 +32,7 @@ enable_user_setting_command.__doc__ = """enable: 开启当前群订阅的推特�
 TAKATOSHI_Gship;tweet\n\n所有可以设置的选项为tweet, retweet, comment, text, 
 translation, screenshot, content"""
 
+
 @enable_user_setting_command.handle()
 async def enable_user_setting_handler(bot: Bot, event: GroupMessageEvent, state: T_State):
     await modify_user_setting(enable_user_setting_command, event, database, True)
@@ -41,6 +43,7 @@ disable_user_setting_command.__doc__ = """disable: 关闭当前群订阅的推�
 TAKATOSHI_Gship;tweet\n\n所有可以设置的选项为tweet, retweet, comment, text, 
 translation, screenshot, content"""
 
+
 @disable_user_setting_command.handle()
 async def disable_user_setting_handler(bot: Bot, event: GroupMessageEvent, state: T_State):
     await modify_user_setting(disable_user_setting_command, event, database, False)
@@ -50,6 +53,7 @@ custom_user_setting_command = on_command('custom')
 custom_user_setting_command.__doc__ = """custom: 设置当前群订阅的推特用户的定制内容，eg: #custom *;tag, #custom 
 TAKATOSHI_Gship;tag\n\n所有可以设置的选项为tag, css, background """
 
+
 @custom_user_setting_command.handle()
 async def custom_user_setting_handler(bot: Bot, event: GroupMessageEvent, state: T_State):
     if 'screen_name' in state:
@@ -57,7 +61,7 @@ async def custom_user_setting_handler(bot: Bot, event: GroupMessageEvent, state:
     args = str(event.get_message()).strip().split(';')
     group_setting = await get_group_setting(custom_user_setting_command, database, event.group_id)
     match args:
-        case [screen_name, key]:
+        case[screen_name, key]:
             if key not in custom_types:
                 await custom_user_setting_command.finish(f'未知自定义属性{key}，仅支持{custom_types.keys()}')
             if screen_name != '*':
@@ -107,12 +111,13 @@ async def custom_content_handler(bot: Bot, event: GroupMessageEvent, state: T_St
 check_custom_command = on_command('check')
 check_custom_command.__doc__ = """check: 查询当前自定义的设置内容，eg: #check css, #check tag"""
 
+
 @check_custom_command.handle()
 async def check_custom_handler(bot: Bot, event: GroupMessageEvent, state: T_State):
     group_setting = await get_group_setting(check_custom_command, database, event.group_id)
     args = str(event.get_message()).strip().split(';')
     match args:
-        case [screen_name, key]:
+        case[screen_name, key]:
             user_setting = await group_setting.get_user_setting(screen_name=screen_name)
             if user_setting is None:
                 await check_custom_command.finish(f'未注册用户{screen_name}')

@@ -14,10 +14,10 @@ async def modify_user_setting(matcher: Type[Matcher], event: GroupMessageEvent, 
     group_setting = await get_group_setting(matcher, database, event.group_id)
     args = str(event.get_message()).strip().split(';')
     match args:
-        case [screen_name, key]:
+        case[screen_name, key]:
             (_, message) = await group_setting.modify_user_setting(f'receive_{key}', value, screen_name=screen_name)
             await matcher.finish(message)
-        case [key]:
+        case[key]:
             (_, message) = await group_setting.modify_user_setting(f'receive_{key}', value)
             await matcher.finish(message)
         case _:
