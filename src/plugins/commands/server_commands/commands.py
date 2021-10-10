@@ -14,7 +14,7 @@ database_dict = require('database')
 database: Database = database_dict.database
 
 
-translate_command = on_command('translate')
+translate_command = on_command('translate', aliases=set(['tr']))
 translate_command.__doc__ = """translate: 嵌字，需要对应的嵌字编号，eg: #translate 3，随后按照提示输入嵌字内容，如果是嵌入回复内容，需要指定行号，例如#1 第一行内容\n#3 
 第三行内容 """
 
