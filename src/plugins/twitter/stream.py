@@ -1,7 +1,8 @@
 import nonebot
-from tweepy.asynchronous import AsyncStream
+
 from asyncio import Queue
 from typing import Union
+from tweepy.asynchronous import AsyncStream
 
 from .models import Tweet
 

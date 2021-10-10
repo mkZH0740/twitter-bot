@@ -1,16 +1,17 @@
-import nonebot
-from nonebot import export
+from nonebot.plugin import require, export
 
-from .models import Tweet
 from .holder import StreamHolder
-from .stream import Stream
-from ..db import BotDatabase
+
+from ..database import Database
 from ..external import ExternalHolder
 
-bot_database: BotDatabase = nonebot.require('db').bot_database
-external_holder: ExternalHolder = nonebot.require('external').external_holder
 
-stream_holder = StreamHolder(bot_database, external_holder)
+database_dict = require('database')
+database: Database = database_dict.database
+external_dict = require('external')
+external_holder: ExternalHolder = external_dict.external_holder
+
+stream_holder = StreamHolder(database, external_holder)
 
 twitter_dict = export()
 twitter_dict.stream_holder = stream_holder
