@@ -2,7 +2,7 @@ import subprocess
 import nonebot
 
 from psutil import Popen
-from nonebot import export
+from nonebot.plugin import export
 
 
 async def _kill_process(process: Popen):
@@ -16,8 +16,9 @@ class ExternalHolder:
     server_cmd: Popen = None
 
     def __init__(self):
-        self.cq_http_path = nonebot.get_driver().config.cq_http_path
-        self.server_path = nonebot.get_driver().config.server_path
+        config = nonebot.get_driver().config
+        self.cq_http_path = config.cq_http_path
+        self.server_path = config.server_path
 
     async def start_cq_http(self):
         self.cq_http_cmd = Popen(
@@ -26,7 +27,8 @@ class ExternalHolder:
             stdin=subprocess.PIPE,
             creationflags=subprocess.CREATE_NEW_CONSOLE
         )
-        self.cq_http_cmd.stdin.write(bytes('go-cqhttp_windows_amd64.exe\n', 'utf-8'))
+        self.cq_http_cmd.stdin.write(
+            bytes('go-cqhttp_windows_amd64.exe\n', 'utf-8'))
         self.cq_http_cmd.stdin.flush()
 
     async def start_server(self):

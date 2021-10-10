@@ -1,7 +1,8 @@
 import nonebot
-from tweepy.asynchronous import AsyncStream
+
 from asyncio import Queue
 from typing import Union
+from tweepy.asynchronous import AsyncStream
 
 from .models import Tweet
 
@@ -13,7 +14,8 @@ class Stream(AsyncStream):
     async def on_status(self, status):
         tweet = Tweet(status)
         if tweet.user.id in self.registered_users:
-            nonebot.logger.debug(f'Stream -> received tweet from {tweet.user.screen_name}')
+            nonebot.logger.debug(
+                f'Stream -> received tweet from {tweet.user.screen_name}')
             await self.stream_queue.put((True, tweet))
 
     async def on_closed(self, resp):
