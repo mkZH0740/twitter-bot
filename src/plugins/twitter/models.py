@@ -3,6 +3,7 @@ import nonebot
 
 from aiofiles.os import remove
 from nonebot.adapters.cqhttp import Bot, MessageSegment
+from tweepy import user
 
 from .utils import get_screenshot_and_text, get_translation, make_forward_message_node
 from ..database import GroupSetting, UserSetting
@@ -49,6 +50,8 @@ class Tweet:
                 media_urls.append(medias[i].get('media_url_https'))
             if len(media_urls) != 0:
                 self.loaded_content['content'] = media_urls
+            else:
+                self.loaded_content['content'] = list()
 
     async def make_normal_message(self, group_setting: GroupSetting, user_setting: UserSetting):
         message = ''
@@ -62,19 +65,18 @@ class Tweet:
             text_segment = MessageSegment.text(text=text)
             message += '\n原文：' + str(text_segment)
         if user_setting.receive_translation:
-            if 'translation' not in self.loaded_content:
-                await self.load_translation()
+            await self.load_translation()
             translation = self.loaded_content['translation']
             translation_segment = MessageSegment.text(text=translation)
             message += '\n翻译：' + str(translation_segment)
         if user_setting.receive_content:
-            if 'content' not in self.loaded_content:
-                await self.load_content()
+            await self.load_content()
             media_urls: list[str] = self.loaded_content['content']
-            message += '\n附件：'
-            for media_url in media_urls:
-                if media_url is not None:
-                    message += str(MessageSegment.image(file=media_url))
+            if len(media_urls) != 0:
+                message += '\n附件：'
+                for media_url in media_urls:
+                    if media_url is not None:
+                        message += str(MessageSegment.image(file=media_url))
         history_index = await group_setting.add_history(self.tweet_url)
         message += f'\n编号：{history_index}'
         return message
@@ -93,15 +95,13 @@ class Tweet:
             text_node = await make_forward_message_node('原文', bot.self_id, text_segment)
             message.append(text_node)
         if user_setting.receive_translation:
-            if 'translation' not in self.loaded_content:
-                await self.load_translation()
+            await self.load_translation()
             translation = self.loaded_content['translation']
             translation_segment = MessageSegment.text(text=translation)
             translation_node = await make_forward_message_node('翻译', bot.self_id, translation_segment)
             message.append(translation_node)
         if user_setting.receive_content:
-            if 'content' not in self.loaded_content:
-                await self.load_content()
+            await self.load_content()
             media_urls: list[str] = self.loaded_content['content']
             for media_url in media_urls:
                 if media_url is not None:
@@ -116,6 +116,8 @@ class Tweet:
         await self.load_screenshot_and_text()
         user_setting = await group_setting.get_user_setting(user_id=self.user_id)
         if user_setting is None:
+            return
+        if not getattr(user_setting, f'receive_{self.tweet_type}'):
             return
         if 'screenshot_path' not in self.loaded_content:
             await send_group_message(bot, group_setting.group_id, self.loaded_content['text'])

@@ -1,10 +1,14 @@
 import json
+import random
+import asyncio
 import aiofiles
 
 from nonebot.plugin import require, on_command
 from nonebot.typing import T_State
+from nonebot.permission import SUPERUSER
 from nonebot.adapters.cqhttp import Bot, GroupMessageEvent, MessageSegment
 
+from ...send import send_group_message
 from ...database import Database, UserSetting, GroupSetting, custom_types
 from ..utils import get_group_setting
 from .utils import modify_user_setting, save_image_to_disk
@@ -96,20 +100,20 @@ async def custom_content_handler(bot: Bot, event: GroupMessageEvent, state: T_St
         if not flag:
             await custom_user_setting_command.finish('下载图片失败')
     else:
-        file_name += '.txt'
+        file_name += '.css'
         file_path = f'{group_setting.group_database_path}\\{file_name}'
         async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
-            await f.write(custom_message.data.get('text'))
+            await f.write(str(custom_message.data.get('text')).replace('\r\n', '\n'))
     if screen_name == '*':
         for user_setting in group_setting.user_settings.values():
-            setattr(user_setting, f'custom_{key}', file_path)
+            setattr(user_setting, f'custom_{key}', file_name)
     else:
-        setattr(user_setting, f'custom_{key}', file_path)
+        setattr(user_setting, f'custom_{key}', file_name)
     await custom_user_setting_command.finish('设置完成')
 
 
 check_custom_command = on_command('check')
-check_custom_command.__doc__ = """check: 查询当前自定义的设置内容，eg: #check css, #check tag"""
+check_custom_command.__doc__ = """check: 查询当前自定义的设置内容，eg: #check TAKATOSHI_Gship;css, #check TAKATOSHI_Gship;tag"""
 
 
 @check_custom_command.handle()
@@ -129,7 +133,7 @@ async def check_custom_handler(bot: Bot, event: GroupMessageEvent, state: T_Stat
                 if custom_types[key] == 'image':
                     file_path += '.png'
                 else:
-                    file_path += '.txt'
+                    file_path += '.css'
             else:
                 file_path = f'{group_setting.group_database_path}\\{custom_content}'
             if custom_types[key] == 'image':
@@ -138,3 +142,18 @@ async def check_custom_handler(bot: Bot, event: GroupMessageEvent, state: T_Stat
                 async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
                     content = await f.read()
                 await check_custom_command.finish(content)
+        case _:
+            await check_custom_command.finish('需要指定用户名')
+
+
+
+announce_command = on_command('announce', aliases=set(['a']), permission=SUPERUSER)
+
+
+@announce_command.handle()
+async def announce_command_handler(bot: Bot, event: GroupMessageEvent, state: T_State):
+    message = str(event.get_message()).strip()
+    for group_setting in database.group_settings.values():
+        await send_group_message(bot, group_setting.group_id, message)
+        await asyncio.sleep(random.randint(3, 7))
+    await announce_command.finish('发送完成')

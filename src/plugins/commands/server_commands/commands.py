@@ -15,7 +15,7 @@ database: Database = database_dict.database
 
 
 translate_command = on_command('translate', aliases=set(['tr']))
-translate_command.__doc__ = """translate: 嵌字，需要对应的嵌字编号，eg: #translate 3，随后按照提示输入嵌字内容，如果是嵌入回复内容，需要指定行号，例如#1 第一行内容\n#3 
+translate_command.__doc__ = """translate或tr: 嵌字，需要对应的嵌字编号，eg: #translate 3，随后按照提示输入嵌字内容，如果是嵌入回复内容，需要指定行号，例如#1 第一行内容\n#3 
 第三行内容 """
 
 
@@ -45,12 +45,12 @@ async def translation_handler(bot: Bot, event: GroupMessageEvent, state: T_State
     url: str = state['url']
     user_setting: UserSetting = state['user_setting']
     group_setting: GroupSetting = state['group_setting']
-    translation = str(event.get_message())
+    translation = str(event.get_message()).replace('\r\n', '\n\n')
     config = nonebot.get_driver().config
     server_url: str = config.server_url
     server_path: str = config.server_path
     default_tag_path = f'{database.database_path}\\default\\default_tag.png'
-    default_css_path = f'{database.database_path}\\default\\default_css.png'
+    default_css_path = f'{database.database_path}\\default\\default_css.css'
     request_payload = {
         'url': url,
         'translation': translation,

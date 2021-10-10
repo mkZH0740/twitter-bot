@@ -31,7 +31,7 @@ class UserSetting:
     receive_content: bool = True
 
     # user tweet receive message setting
-    receive_collapsed_message: bool = True
+    receive_collapsed_message: bool = False
 
     # user custom settins
     custom_tag: Optional[str] = None
@@ -136,13 +136,13 @@ class GroupSetting:
     async def add_history(self, url: str):
         self.history.append(url)
         if len(self.history) >= max_history_amount:
-            self.history = self.history[max_history_amount / 2:]
+            self.history = self.history[int(max_history_amount / 2):]
         return len(self.history)
 
     async def get_history(self, index: int):
         if index < 1 or index > len(self.history):
             return self.__err(f'非法编号，编号应在1和{len(self.history)}之间')
-        return True, self.history[index]
+        return True, self.history[index - 1]
 
     async def load(self):
         user_setting_path = f'{self.group_database_path}\\user.json'
