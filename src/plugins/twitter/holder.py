@@ -1,4 +1,5 @@
 import asyncio
+from asyncio import tasks
 import nonebot
 
 from asyncio import Queue
@@ -49,28 +50,31 @@ class StreamHolder:
             f'running stream with registered users {self.stream.registered_users}')
 
     async def consume_stream(self):
-        admin_qq: int = nonebot.get_driver().config.admin_qq
         while True:
             content = await self.stream_queue.get()
-            try:
-                match content:
-                    case(True, tweet):
-                        try:
-                            bot: Bot = nonebot.get_bot()
-                        except ValueError:
-                            nonebot.logger.warning(
-                                f'consume_stream => get bot failed for tweet {tweet.tweet_url}')
-                            continue
-                        group_settings = await self.database.get_group_registered_for_user(tweet.user_id)
-                        for group_setting in group_settings:
-                            await tweet.send_message(bot, group_setting)
-                        await tweet.clean_up()
-                    case(False, err_message):
-                        await send_private_message(bot, admin_qq, err_message)
-                    case _:
-                        await send_private_message(bot, admin_qq, f'unknown object {content}')
-            except Exception as e:
-                nonebot.logger.warning(f'consume_stream => unknown error {e}')
+            consume_task = asyncio.create_task(self.solve_stream_content(content))
+            consume_task.add_done_callback(self.solve_stream_content_callback)
+    
+    async def solve_stream_content(self, content: tuple[Literal[True], Tweet] | tuple[Literal[False], str]):
+        bot: Bot = nonebot.get_bot()
+        match content:
+            case(True, tweet):
+                group_settings = await self.database.get_group_registered_for_user(tweet.user_id)
+                for group_setting in group_settings:
+                    await tweet.send_message(bot, group_setting)
+                await tweet.clean_up()
+            case(False, err_message):
+                admin_qq: int = nonebot.get_driver().config.admin_qq
+                await send_private_message(bot, admin_qq, err_message)
+            case _:
+                admin_qq: int = nonebot.get_driver().config.admin_qq
+                await send_private_message(bot, admin_qq, f'unknown object {content}')
+    
+    def solve_stream_content_callback(self, task: Task):
+        exception = task.exception()
+        if exception is not None:
+            nonebot.logger.warning(f'{type(self).__name__} solve content exception {type(exception).__name__} => {exception}')
+
 
     async def startup(self):
         await self.run_stream()
