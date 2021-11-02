@@ -23,7 +23,9 @@ def invalid_value(value):
 async def expand_user_setting(user_setting: UserSetting):
     args = [key for key in dir(user_setting) 
             if not key.startswith('_') and not invalid_value(getattr(user_setting, key))]
-    return {key: getattr(user_setting, key) for key in args}
+    result = {key: getattr(user_setting, key) for key in args}
+    result['user_id'] = str(result['user_id'])
+    return result
 
 
 @app.get('/settings/{group_id}')

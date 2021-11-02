@@ -4,6 +4,7 @@ from nonebot.adapters.cqhttp.message import MessageSegment
 
 from nonebot.plugin import require, on_command
 from nonebot.typing import T_State
+from nonebot.rule import Rule
 from nonebot.adapters.cqhttp import Bot, GroupMessageEvent
 
 from ..utils import get_group_setting
